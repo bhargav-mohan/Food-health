@@ -106,6 +106,47 @@
     </div>
 </div>
 
+<!-- Quick Add Widget (Frictionless Logging) -->
+<div class="card card-static fade-in-delay-2" style="margin-bottom: 24px; padding: 20px;">
+    <h3 style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; color: var(--primary)"><path d="M12 5v14M5 12h14"/></svg>
+        Quick Log
+    </h3>
+    <form id="food-form" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 280px;">
+            <input type="text" id="food_name" name="food_name" placeholder="e.g., 2 eggs, 1 banana, 200g rice" required style="width: 100%; height: 48px; font-size: 15px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--bg-page); color: var(--text-primary);">
+        </div>
+        <div style="width: 140px;">
+            <select id="meal_type" name="meal_type" style="width: 100%; height: 48px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--bg-page); color: var(--text-primary);">
+                <option value="breakfast">Breakfast</option>
+                <option value="lunch">Lunch</option>
+                <option value="dinner">Dinner</option>
+                <option value="snack" selected>Snack</option>
+            </select>
+        </div>
+        <input type="hidden" id="calories" value="0">
+        <input type="hidden" id="protein" value="0">
+        <input type="hidden" id="carbs" value="0">
+        <input type="hidden" id="fat" value="0">
+        <input type="hidden" id="fiber" value="0">
+        <input type="hidden" id="serving_size" value="1 serving">
+        <input type="hidden" id="health_score" value="7">
+        <input type="hidden" id="ai_insight" value="Auto-calculated">
+        <input type="hidden" id="image_filename" value="">
+        <button type="submit" class="btn btn-primary" id="submit-food-btn" style="height: 48px; padding: 0 24px;">Log</button>
+    </form>
+</div>
+<script>
+// Mock internal calculator for Quick Add inline
+document.getElementById('food-form').addEventListener('submit', function() {
+    const text = document.getElementById('food_name').value.toLowerCase();
+    document.getElementById('calories').value = 150 + (text.length * 5);
+    document.getElementById('protein').value = text.includes('egg') || text.includes('chicken') ? 25 : 5;
+    document.getElementById('carbs').value = text.includes('rice') || text.includes('banana') ? 40 : 15;
+    document.getElementById('fat').value = text.includes('egg') || text.includes('oil') ? 12 : 5;
+});
+</script>
+
 <!-- Charts Row -->
 <div class="charts-grid fade-in-delay-2">
     <div class="card chart-card card-static">
@@ -139,7 +180,6 @@
 <div class="card card-static fade-in-delay-3" id="recent-entries">
     <div class="section-header">
         <h3>Today's food log</h3>
-        <a href="{{ url_for('food_log') }}" class="btn btn-primary btn-sm">Add food</a>
     </div>
     {% if entries %}
     <div class="food-list">
@@ -173,7 +213,7 @@
     <div class="empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="10"/></svg>
         <p>Start your day by logging your first meal</p>
-        <a href="{{ url_for('food_log') }}" class="btn btn-primary" style="margin-top: 8px;">Add Food</a>
+        <button onclick="document.getElementById('food_name').focus()" class="btn btn-primary" style="margin-top: 8px;">Quick Log</button>
     </div>
     {% endif %}
 </div>
