@@ -152,7 +152,7 @@ document.getElementById('food-form').addEventListener('submit', function() {
     <div class="card chart-card card-static">
         <h3>Macro breakdown</h3>
         <div class="chart-container">
-            <canvas id="macroChart"></canvas>
+            <canvas id="macroChart" role="img" aria-label="Donut chart showing macronutrient breakdown: Protein, Carbs, and Fat"></canvas>
         </div>
         {% if summary.entry_count == 0 %}
         <p class="chart-empty">Log your first meal to see macro breakdown</p>
