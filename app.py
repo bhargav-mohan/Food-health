@@ -192,6 +192,12 @@ def api_integrations():
     status = data.get('status', 1)
     if integration in ['spotify', 'strava']:
         update_integration(session['user_id'], integration, status)
+        
+        # Simulate syncing data from Strava when connected
+        if integration == 'strava' and status == 1:
+            add_exercise(session['user_id'], "Strava: Morning Run", 45, 420)
+            add_exercise(session['user_id'], "Strava: Afternoon Ride", 30, 250)
+            
         return jsonify({'success': True})
     return jsonify({'error': 'Invalid integration'}), 400
 
