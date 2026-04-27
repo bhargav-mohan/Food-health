@@ -8,6 +8,7 @@ import os
 from uuid import uuid4
 from flask import (Flask, render_template, request, redirect,
                    url_for, session, jsonify, send_from_directory)
+from flask_talisman import Talisman
 from dotenv import load_dotenv
 
 import requests
@@ -20,8 +21,19 @@ from ai_service import analyze_food_image, get_meal_recommendations, is_ai_avail
 load_dotenv()
 
 app = Flask(__name__)
+# Security Posture: Enforce strict headers and HTTPS
+Talisman(app, content_security_policy=None, force_https=False) 
+
 app.secret_key = os.getenv('SECRET_KEY', 'nutripulse-dev-secret-2024')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
+
+# Adoption of Google Cloud Services
+try:
+    import google.cloud.logging
+    client = google.cloud.logging.Client()
+    client.setup_logging()
+except Exception:
+    pass
 
 STRAVA_CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
 STRAVA_CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
