@@ -10,10 +10,11 @@ from flask import (Flask, render_template, request, redirect,
                    url_for, session, jsonify, send_from_directory)
 from dotenv import load_dotenv
 
+import requests
 from models import (init_db, create_user, get_user_by_id,
                     add_food_entry, get_food_entries_today, delete_food_entry,
                     get_daily_summary, update_calorie_goal,
-                    add_exercise, log_steps, get_fitness_summary, update_integration)
+                    add_exercise, log_steps, get_fitness_summary, update_integration, update_strava_tokens)
 from ai_service import analyze_food_image, get_meal_recommendations, is_ai_available
 
 load_dotenv()
@@ -21,6 +22,9 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'nutripulse-dev-secret-2024')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload
+
+STRAVA_CLIENT_ID = os.getenv('STRAVA_CLIENT_ID')
+STRAVA_CLIENT_SECRET = os.getenv('STRAVA_CLIENT_SECRET')
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -190,17 +194,60 @@ def api_integrations():
     data = request.get_json()
     integration = data.get('integration')
     status = data.get('status', 1)
-    if integration in ['spotify', 'strava']:
+    if integration == 'spotify':
         update_integration(session['user_id'], integration, status)
-        
-        # Simulate syncing data from Strava when connected
-        if integration == 'strava' and status == 1:
-            add_exercise(session['user_id'], "Strava: Morning Run", 45, 420)
-            add_exercise(session['user_id'], "Strava: Afternoon Ride", 30, 250)
-            
         return jsonify({'success': True})
     return jsonify({'error': 'Invalid integration'}), 400
 
+
+@app.route('/api/strava/auth')
+def strava_auth():
+    if not STRAVA_CLIENT_ID:
+        return "STRAVA_CLIENT_ID not set in .env", 500
+    redirect_uri = url_for('strava_callback', _external=True)
+    auth_url = f"https://www.strava.com/oauth/authorize?client_id={STRAVA_CLIENT_ID}&response_type=code&redirect_uri={redirect_uri}&scope=activity:read_all"
+    return redirect(auth_url)
+
+
+@app.route('/api/strava/callback')
+def strava_callback():
+    code = request.args.get('code')
+    if not code:
+        return "Authorization failed", 400
+        
+    res = requests.post("https://www.strava.com/oauth/token", data={
+        'client_id': STRAVA_CLIENT_ID,
+        'client_secret': STRAVA_CLIENT_SECRET,
+        'code': code,
+        'grant_type': 'authorization_code'
+    })
+    
+    if res.status_code != 200:
+        return f"Failed to get token: {res.text}", 400
+        
+    token_data = res.json()
+    access_token = token_data.get('access_token')
+    refresh_token = token_data.get('refresh_token')
+    expires_at = token_data.get('expires_at')
+    
+    update_strava_tokens(session['user_id'], access_token, refresh_token, expires_at)
+    
+    # Sync recent activities immediately
+    activities_res = requests.get(
+        "https://www.strava.com/api/v3/athlete/activities?per_page=5",
+        headers={'Authorization': f"Bearer {access_token}"}
+    )
+    
+    if activities_res.status_code == 200:
+        activities = activities_res.json()
+        for activity in activities:
+            name = f"Strava: {activity['name']}"
+            duration = int(activity['elapsed_time'] / 60)
+            # Rough estimate if Strava doesn't provide kilojoules/calories directly on this endpoint
+            cals = activity.get('kilojoules', duration * 10) 
+            add_exercise(session['user_id'], name, duration, cals)
+            
+    return redirect(url_for('dashboard'))
 
 # ── Error Handlers ──
 

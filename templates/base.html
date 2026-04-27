@@ -126,9 +126,11 @@
                 </div>
                 <div class="form-group" style="display:flex; justify-content:space-between; align-items:center;">
                     <span>Strava</span>
-                    <button class="btn btn-sm {% if user and user.strava_connected %}btn-primary{% else %}btn-secondary{% endif %}" onclick="toggleIntegration('strava', {{ 0 if user and user.strava_connected else 1 }})">
-                        {{ 'Connected' if user and user.strava_connected else 'Connect' }}
-                    </button>
+                    {% if user and user.strava_connected %}
+                    <button class="btn btn-sm btn-primary" onclick="toggleIntegration('strava', 0)">Connected</button>
+                    {% else %}
+                    <a href="{{ url_for('strava_auth') }}" class="btn btn-sm btn-secondary">Connect</a>
+                    {% endif %}
                 </div>
             </div>
             {% if user and user.spotify_connected %}

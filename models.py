@@ -59,6 +59,9 @@ def init_db():
             daily_calorie_goal INTEGER DEFAULT 2000,
             spotify_connected INTEGER DEFAULT 0,
             strava_connected INTEGER DEFAULT 0,
+            strava_access_token TEXT,
+            strava_refresh_token TEXT,
+            strava_expires_at INTEGER,
             created_at TEXT DEFAULT (datetime('now'))
         );
 
@@ -154,6 +157,15 @@ def update_integration(user_id, integration, status):
     conn.commit()
     conn.close()
 
+
+def update_strava_tokens(user_id, access_token, refresh_token, expires_at):
+    conn = get_conn()
+    conn.execute(
+        "UPDATE users SET strava_connected = 1, strava_access_token = ?, strava_refresh_token = ?, strava_expires_at = ? WHERE id = ?",
+        (access_token, refresh_token, expires_at, user_id)
+    )
+    conn.commit()
+    conn.close()
 
 # ── Exercise & Steps Operations ──
 
