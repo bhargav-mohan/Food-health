@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Login — NutriPulse{% endblock %}
+
+{% block content %}
+<div class="auth-container fade-in">
+    <div class="auth-card glass-card">
+        <div class="auth-header">
+            <span class="auth-logo">⚡</span>
+            <h1>NutriPulse</h1>
+            <p class="auth-subtitle">AI-Powered Nutrition Tracking</p>
+        </div>
+        <form method="POST" action="{{ url_for('login') }}" class="auth-form" id="login-form">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="login-btn">Sign In</button>
+        </form>
+        <p class="auth-footer">
+            Don't have an account? <a href="{{ url_for('signup') }}">Create one</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

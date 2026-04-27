@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}AI recommendations — NutriPulse{% endblock %}
+
+{% block content %}
+<div class="page-header fade-in">
+    <div>
+        <h1>AI meal recommendations</h1>
+        <p class="page-subtitle">Get personalized meal ideas based on your daily intake</p>
+    </div>
+</div>
+
+<div class="card card-static fade-in-delay-1" id="rec-section">
+    {% if ai_available %}
+    <div class="rec-trigger">
+        <p>Click below to get AI-powered meal suggestions based on what you've eaten today.</p>
+        <button class="btn btn-primary btn-lg" id="get-recs-btn" onclick="getRecommendations()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:18px;height:18px"><path d="M12 2a7 7 0 017 7c0 3-2 5-3 7h-8c-1-2-3-4-3-7a7 7 0 017-7z"/><path d="M9 16v2a3 3 0 006 0v-2"/></svg>
+            Get smart recommendations
+        </button>
+    </div>
+    <div id="rec-loading" class="ai-loading" style="display:none">
+        <div class="spinner"></div>
+        <p>AI is crafting your personalized meal plan...</p>
+    </div>
+    <div id="rec-results" style="display:none">
+        <div id="daily-summary" class="rec-summary"></div>
+        <div id="rec-cards" class="rec-grid"></div>
+    </div>
+    {% else %}
+    <div class="card fade-in-delay-1" style="background: linear-gradient(135deg, rgba(99,102,241,0.05) 0%, rgba(139,92,246,0.05) 100%); border-color: rgba(99,102,241,0.2);">
+        <h3 style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;color:var(--primary)"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            Smart Suggestions
+        </h3>
+        
+        <div style="margin-bottom:24px;">
+            <p style="font-size:14px; color:var(--text-secondary); margin-bottom:12px;">You need more protein today</p>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <div class="food-item" style="cursor:pointer; transform:none; box-shadow:none;">
+                    <div class="food-item-left">
+                        <div class="food-thumb-placeholder" style="background:rgba(139,92,246,0.1); color:var(--color-protein)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg></div>
+                        <div class="food-item-info">
+                            <span class="food-name">Grilled chicken breast</span>
+                            <span class="food-meta">35g protein · 165 cal</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="food-item" style="cursor:pointer; transform:none; box-shadow:none;">
+                    <div class="food-item-left">
+                        <div class="food-thumb-placeholder" style="background:rgba(139,92,246,0.1); color:var(--color-protein)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><circle cx="12" cy="12" r="10"/></svg></div>
+                        <div class="food-item-info">
+                            <span class="food-name">Paneer bowl</span>
+                            <span class="food-meta">28g protein · 220 cal</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div>
+            <p style="font-size:14px; color:var(--text-secondary); margin-bottom:12px;">Low calorie options</p>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <div class="food-item" style="cursor:pointer; transform:none; box-shadow:none;">
+                    <div class="food-item-left">
+                        <div class="food-thumb-placeholder" style="background:rgba(99,102,241,0.1); color:var(--color-calories)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                        <div class="food-item-info">
+                            <span class="food-name">Green Salad</span>
+                            <span class="food-meta">150 kcal · High fiber</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function getRecommendations() {
+    var btn = document.getElementById('get-recs-btn');
+    var loading = document.getElementById('rec-loading');
+    var results = document.getElementById('rec-results');
+
+    btn.style.display = 'none';
+    loading.style.display = 'flex';
+    results.style.display = 'none';
+
+    fetch('/api/recommendations', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(function(r){return r.json()})
+    .then(function(data) {
+        loading.style.display = 'none';
+        if (data.error) {
+            btn.style.display = 'inline-flex';
+            alert(data.error);
+            return;
+        }
+        results.style.display = 'block';
+
+        document.getElementById('daily-summary').innerHTML =
+            '<div class="summary-card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg><p>' +
+            (data.daily_summary || 'No summary available') + '</p></div>';
+
+        var cardsEl = document.getElementById('rec-cards');
+        cardsEl.innerHTML = '';
+        var icons = ['<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a7 7 0 017 7c0 3-2 5-3 7h-8c-1-2-3-4-3-7a7 7 0 017-7z"/></svg>',
+                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>',
+                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22c5 0 8-3.5 8-8S12 2 12 2 4 9.5 4 14s3 8 8 8z"/></svg>'];
+        if (data.recommendations) {
+            data.recommendations.forEach(function(rec, i) {
+                cardsEl.innerHTML += '<div class="card rec-card fade-in" style="animation-delay:' + (i * 0.1) + 's">' +
+                    '<div class="rec-card-header">' + (icons[i]||icons[0]) + '<h4>' + rec.meal_name + '</h4></div>' +
+                    '<p class="rec-desc">' + rec.description + '</p>' +
+                    '<div class="rec-macros"><span class="rec-cal">' + rec.estimated_calories + ' cal</span>' +
+                    (rec.protein ? '<span>' + rec.protein + 'g protein</span>' : '') +
+                    (rec.carbs ? '<span>' + rec.carbs + 'g carbs</span>' : '') +
+                    (rec.fat ? '<span>' + rec.fat + 'g fat</span>' : '') + '</div>' +
+                    '<p class="rec-why">' + rec.why + '</p></div>';
+            });
+        }
+        btn.textContent = 'Get new recommendations';
+        btn.style.display = 'inline-flex';
+    })
+    .catch(function() {
+        loading.style.display = 'none';
+        btn.style.display = 'inline-flex';
+        alert('Failed to get recommendations. Please try again.');
+    });
+}
+</script>
+{% endblock %}

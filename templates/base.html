@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+      (function(){
+        var t=localStorage.getItem('nutripulse-theme');
+        var d=window.matchMedia('(prefers-color-scheme:dark)').matches;
+        if(t==='dark'||(!t&&d))document.documentElement.classList.add('dark');
+      })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NutriPulse — AI-powered food tracking and nutrition insights">
+    <title>{% block title %}NutriPulse{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <nav class="navbar" id="main-nav">
+        <a href="{{ url_for('dashboard') }}" class="nav-brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            NutriPulse
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" id="nav-dashboard">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                Dashboard
+            </a>
+            <a href="{{ url_for('food_log') }}" class="nav-link {% if request.endpoint == 'food_log' %}active{% endif %}" id="nav-food-log">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="10"/></svg>
+                Food log
+            </a>
+            <a href="{{ url_for('recommendations') }}" class="nav-link {% if request.endpoint == 'recommendations' %}active{% endif %}" id="nav-recommendations">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a7 7 0 017 7c0 3-2 5-3 7h-8c-1-2-3-4-3-7a7 7 0 017-7z"/><path d="M9 16v2a3 3 0 006 0v-2"/></svg>
+                AI meals
+            </a>
+        </div>
+        <div class="nav-right">
+            <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+                <svg class="toggle-icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                <svg class="toggle-icon moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+                <span class="knob"></span>
+            </button>
+            <button class="user-avatar" id="settings-trigger" aria-label="Settings">N</button>
+        </div>
+    </nav>
+
+    <!-- Settings Drawer -->
+    <div class="settings-overlay" id="settings-overlay"></div>
+    <div class="settings-drawer" id="settings-drawer">
+        <div class="settings-header">
+            <h2>Settings</h2>
+            <button class="btn-icon" id="settings-close" aria-label="Close settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="settings-body">
+            <!-- Profile Section -->
+            <div class="settings-section">
+                <h3>Profile</h3>
+                <div class="form-group" style="margin-bottom:8px">
+                    <input type="text" placeholder="Name" value="{{ user.name if user else 'NutriPulse User' }}">
+                </div>
+                <div class="form-row" style="margin-bottom:8px">
+                    <div class="form-group"><input type="number" placeholder="Age" value="28"></div>
+                    <div class="form-group">
+                        <select><option>Male</option><option>Female</option><option>Other</option></select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Health Data Section -->
+            <div class="settings-section">
+                <h3>Health Data</h3>
+                <div class="form-row" style="margin-bottom:8px">
+                    <div class="form-group"><label>Height (cm)</label><input type="number" value="175"></div>
+                    <div class="form-group"><label>Weight (kg)</label><input type="number" value="70"></div>
+                </div>
+                <div class="form-group" style="margin-bottom:8px">
+                    <label>Target Weight (kg)</label>
+                    <input type="number" value="65">
+                </div>
+                <div class="form-group">
+                    <label>Activity Level</label>
+                    <select><option>Sedentary</option><option selected>Lightly Active</option><option>Very Active</option></select>
+                </div>
+            </div>
+            
+            <!-- Goals Section -->
+            <div class="settings-section">
+                <h3>Goals</h3>
+                <div class="form-group">
+                    <label>Daily Calorie Goal</label>
+                    <input type="number" id="settings-calorie-goal" value="{{ user.daily_calorie_goal if user else 2000 }}" min="500" max="10000" step="50">
+                </div>
+                <button class="btn btn-primary btn-full btn-sm" style="margin-top:12px" onclick="saveGoal()">Recalculate & Save</button>
+            </div>
+            
+            <!-- Preferences Section -->
+            <div class="settings-section">
+                <h3>Preferences</h3>
+                <div class="form-group" style="margin-bottom:8px">
+                    <select><option>Non-Vegetarian</option><option>Vegetarian</option><option>Vegan</option></select>
+                </div>
+                <div class="form-group">
+                    <input type="text" placeholder="Allergies (e.g. Peanuts)">
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3>Appearance</h3>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-secondary btn-sm theme-opt" data-theme="light" style="flex:1">Light</button>
+                    <button class="btn btn-secondary btn-sm theme-opt" data-theme="dark" style="flex:1">Dark</button>
+                    <button class="btn btn-secondary btn-sm theme-opt" data-theme="system" style="flex:1">System</button>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3>Integrations</h3>
+                <div class="form-group" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+                    <span>Spotify Player</span>
+                    <button class="btn btn-sm {% if user and user.spotify_connected %}btn-primary{% else %}btn-secondary{% endif %}" onclick="toggleIntegration('spotify', {{ 0 if user and user.spotify_connected else 1 }})">
+                        {{ 'Connected' if user and user.spotify_connected else 'Connect' }}
+                    </button>
+                </div>
+                <div class="form-group" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>Strava</span>
+                    <button class="btn btn-sm {% if user and user.strava_connected %}btn-primary{% else %}btn-secondary{% endif %}" onclick="toggleIntegration('strava', {{ 0 if user and user.strava_connected else 1 }})">
+                        {{ 'Connected' if user and user.strava_connected else 'Connect' }}
+                    </button>
+                </div>
+            </div>
+            {% if user and user.spotify_connected %}
+            <div class="settings-section">
+                <iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=generator" width="100%" height="80" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+            </div>
+            {% endif %}
+        </div>
+        <div class="settings-footer">
+            <span>NutriPulse v1.0</span>
+            <button class="theme-toggle" id="theme-toggle-drawer" aria-label="Toggle theme">
+                <svg class="toggle-icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                <svg class="toggle-icon moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+                <span class="knob"></span>
+            </button>
+        </div>
+    </div>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav">
+        <a href="{{ url_for('dashboard') }}" class="mobile-nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Dashboard
+        </a>
+        <a href="{{ url_for('food_log') }}" class="mobile-nav-item {% if request.endpoint == 'food_log' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="10"/></svg>
+            Log
+        </a>
+        <a href="{{ url_for('recommendations') }}" class="mobile-nav-item {% if request.endpoint == 'recommendations' %}active{% endif %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a7 7 0 017 7c0 3-2 5-3 7h-8c-1-2-3-4-3-7a7 7 0 017-7z"/><path d="M9 16v2a3 3 0 006 0v-2"/></svg>
+            Insights
+        </a>
+        <div class="mobile-nav-item" onclick="document.getElementById('settings-overlay').classList.add('open'); document.getElementById('settings-drawer').classList.add('open');" style="cursor:pointer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Profile
+        </div>
+    </div>
+    <a href="{{ url_for('food_log') }}" class="mobile-fab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </a>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script>
+    function toggleIntegration(name, status) {
+        fetch('/api/integrations', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({integration: name, status: status})
+        }).then(function() { location.reload(); });
+    }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

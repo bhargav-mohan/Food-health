@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Food log — NutriPulse{% endblock %}
+
+{% block content %}
+<div class="page-header fade-in">
+    <div>
+        <h1>Food log</h1>
+        <p class="page-subtitle">Log meals manually or snap a photo for AI analysis</p>
+    </div>
+</div>
+
+<div class="food-log-grid">
+    <!-- AI Image Upload -->
+    <div class="card card-static fade-in-delay-1" id="ai-section">
+        <h3><span class="section-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M12 2a7 7 0 017 7c0 3-2 5-3 7h-8c-1-2-3-4-3-7a7 7 0 017-7z"/><path d="M9 16v2a3 3 0 006 0v-2"/></svg> AI</span> Snap and analyze</h3>
+        <p class="section-desc">Upload a food photo and let AI identify it instantly</p>
+        <div class="upload-zone" id="upload-zone">
+            <input type="file" id="food-image" accept="image/*" hidden>
+            <div class="upload-content" id="upload-content">
+                <div class="upload-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                </div>
+                <p>Drop a food photo here</p>
+                <span class="upload-hint">or click to browse</span>
+            </div>
+            <img id="image-preview" class="image-preview" style="display:none" alt="Food preview">
+        </div>
+        <div id="ai-loading" class="ai-loading" style="display:none">
+            <div class="spinner"></div>
+            <p>AI is analyzing your food...</p>
+        </div>
+        <div id="ai-result" style="display:none">
+            <div class="ai-result-card">
+                <div class="ai-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+                    AI detected
+                </div>
+                <span id="ai-food-name" class="ai-detected-name"></span>
+                <p id="ai-insight" class="ai-insight-text"></p>
+            </div>
+        </div>
+        {% if not ai_available %}
+        <div class="ai-warning">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Set GEMINI_API_KEY in .env to enable AI food recognition
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Smart Entry Form -->
+    <div class="card card-static fade-in-delay-2" id="manual-section">
+        <h3>⚡ Quick Add</h3>
+        <p class="section-desc" style="margin-bottom: 16px;">Type what you ate. We'll calculate the rest.</p>
+        <form id="food-form" class="food-form">
+            <div class="form-group">
+                <textarea id="food_name" name="food_name" placeholder="e.g., 2 eggs, 1 banana, 200g rice" required rows="3" style="font-size: 16px;"></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="meal_type">Meal</label>
+                    <select id="meal_type" name="meal_type">
+                        <option value="breakfast">Breakfast</option>
+                        <option value="lunch">Lunch</option>
+                        <option value="dinner">Dinner</option>
+                        <option value="snack" selected>Snack</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Hidden inputs calculated internally -->
+            <input type="hidden" id="calories" name="calories" value="0">
+            <input type="hidden" id="protein" name="protein" value="0">
+            <input type="hidden" id="carbs" name="carbs" value="0">
+            <input type="hidden" id="fat" name="fat" value="0">
+            <input type="hidden" id="fiber" name="fiber" value="0">
+            <input type="hidden" id="serving_size" name="serving_size" value="1 serving">
+            
+            <input type="hidden" id="health_score" name="health_score" value="7">
+            <input type="hidden" id="ai_insight" name="ai_insight" value="Auto-calculated from Quick Add">
+            <input type="hidden" id="image_filename" name="image_filename" value="">
+            <button type="submit" class="btn btn-primary btn-full" id="submit-food-btn" style="margin-top: 8px;">
+                <span id="submit-text">Log meal</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+// Mock internal calculator for Quick Add
+document.getElementById('food-form').addEventListener('submit', function(e) {
+    const text = document.getElementById('food_name').value.toLowerCase();
+    
+    // Simple mock calculation logic based on length and keywords
+    let cal = 150 + (text.length * 5);
+    let pro = text.includes('egg') || text.includes('chicken') ? 25 : 5;
+    let carb = text.includes('rice') || text.includes('banana') ? 40 : 15;
+    let fat = text.includes('egg') || text.includes('oil') ? 12 : 5;
+    
+    document.getElementById('calories').value = cal;
+    document.getElementById('protein').value = pro;
+    document.getElementById('carbs').value = carb;
+    document.getElementById('fat').value = fat;
+});
+</script>
+</div>
+
+<!-- Today's Entries -->
+<div class="card card-static fade-in-delay-3" id="todays-entries">
+    <h3>Today's entries</h3>
+    <div id="entries-list" style="margin-top:16px">
+        {% if entries %}
+        {% for entry in entries %}
+        <div class="food-item" data-id="{{ entry.id }}" id="entry-{{ entry.id }}">
+            <div class="food-item-left">
+                {% if entry.image_filename %}
+                <img src="/uploads/{{ entry.image_filename }}" class="food-thumb" alt="{{ entry.food_name }}">
+                {% else %}
+                <div class="food-thumb-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3h18v18H3z"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                </div>
+                {% endif %}
+                <div class="food-item-info">
+                    <span class="food-name">{{ entry.food_name }}</span>
+                    <span class="food-meta">{{ entry.meal_type|capitalize }} · {{ entry.serving_size }} · Score: {{ entry.health_score }}/10</span>
+                    {% if entry.ai_insight %}
+                    <span class="food-insight">{{ entry.ai_insight }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="food-item-right">
+                <span class="food-cal">{{ "%.0f"|format(entry.calories) }} cal</span>
+                <div class="food-macros-mini">
+                    <span>P:{{ "%.0f"|format(entry.protein) }}g</span>
+                    <span>C:{{ "%.0f"|format(entry.carbs) }}g</span>
+                    <span>F:{{ "%.0f"|format(entry.fat) }}g</span>
+                </div>
+                <button class="btn-icon" onclick="deleteEntry({{ entry.id }})" title="Delete">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state" id="empty-entries">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="10"/></svg>
+            <p>Start your day by logging your first meal</p>
+            <button onclick="document.getElementById('food_name').focus()" class="btn btn-primary" style="margin-top: 8px;">Add Food</button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
